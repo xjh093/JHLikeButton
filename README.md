@@ -1,11 +1,13 @@
 # JHLikeButton
-点赞动画
+点赞动画，点赞星星
 
 ---
 
 # What
 
 ![image](https://github.com/xjh093/JHLikeButton/blob/master/gif.gif)
+
+---
 
 # Example
 
