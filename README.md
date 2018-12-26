@@ -9,7 +9,7 @@
 
 ---
 
-# Example
+# Usage
 
 ```
     JHLikeButton *likeButton = [[JHLikeButton alloc] init];
