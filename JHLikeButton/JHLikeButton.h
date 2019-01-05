@@ -33,6 +33,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 typedef void(^JHLikeButtonClickBlock)(BOOL like);
 
+typedef NS_ENUM(NSUInteger, JHLikeButtonType) {
+    JHLikeButtonType_Star,
+    JHLikeButtonType_Heart,
+};
+
+/// A button for 👍
 @interface JHLikeButton : UIControl
 
 /// Normal theme color.
@@ -47,6 +53,10 @@ typedef void(^JHLikeButtonClickBlock)(BOOL like);
 @property (nonatomic,  assign,  readonly) BOOL  animating;
 ///
 @property (nonatomic,    copy) JHLikeButtonClickBlock clickBlock;
+/// Default is 'JHLikeButtonType_Star'
+@property (nonatomic,  assign) JHLikeButtonType  type;
+/// Make touch area bigger
+@property (nonatomic,  assign) UIEdgeInsets  touchInsets;
 
 /// Call it before 'startAnimation'.
 - (void)prepare;
