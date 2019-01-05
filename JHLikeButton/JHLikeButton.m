@@ -29,7 +29,7 @@
 
 #import "JHLikeButton.h"
 
-@interface JHLikeButton()<CAAnimationDelegate>
+@interface JHLikeButton()
 ///
 @property (nonatomic,  strong) UIView *normalView;
 ///
@@ -64,8 +64,8 @@
         _circleView1 = [self setupSubview];
         _circleView2 = [self setupSubview];
         _circleView3 = [self setupSubview];
-        _normalView = [self setupSubview];
-        _likeView = [self setupSubview];
+        _normalView  = [self setupSubview];
+        _likeView    = [self setupSubview];
         
         _normalView.hidden = NO;
     }
@@ -174,6 +174,95 @@
     [view.layer addSublayer:shapeLayer];
 }
 
+- (void)drawHeartInView:(UIView *)view color:(UIColor *)color
+{
+    CGRect bounds = view.bounds;
+    CGSize size = CGSizeMake(bounds.size.width, bounds.size.height);
+    
+    UIGraphicsBeginImageContextWithOptions(size, NO, [UIScreen mainScreen].scale);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    [color set];
+    
+    //===> heart path
+    CGFloat w = CGRectGetWidth(view.bounds);
+    CGFloat radius = w*(7/24.0);
+    CGPoint leftPoint = CGPointMake(radius, radius);
+    CGPoint rightPoint = CGPointMake(w-radius, radius);
+    
+    // clockwise 顺时针
+    UIBezierPath *leftArc = [UIBezierPath bezierPathWithArcCenter:leftPoint radius:radius startAngle:-M_PI_4 endAngle:M_PI_2+M_PI_4 clockwise:0];
+    
+    UIBezierPath *rightArc = [UIBezierPath bezierPathWithArcCenter:rightPoint radius:radius startAngle:-M_PI_2-M_PI_4 endAngle:M_PI_4 clockwise:1];
+    
+    UIBezierPath *line = [UIBezierPath bezierPath];
+    [line moveToPoint:CGPointMake(w*0.5,w/12.0)];
+    [line addLineToPoint:CGPointMake(w/12.0, w*0.5)];
+    [line addLineToPoint:CGPointMake(w*0.5, w)];
+    [line addLineToPoint:CGPointMake(w*11/12.0, w*0.5)];
+    
+    UIBezierPath *path = [UIBezierPath bezierPath];
+    [path appendPath:line];
+    [path appendPath:leftArc];
+    [path appendPath:rightArc];
+    //===>
+    
+    CGContextAddPath(context, path.CGPath);
+    CGContextDrawPath(context, kCGPathEOFill);
+    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    view.layer.contents = (id)[image CGImage];
+}
+
+- (void)drawDotInView:(UIView *)view color:(UIColor *)color
+{
+    CAShapeLayer* shapeLayer = [CAShapeLayer layer];
+    shapeLayer.strokeColor = color.CGColor;
+    shapeLayer.fillColor = color.CGColor;
+    shapeLayer.path = ({
+        
+        CGFloat W = CGRectGetWidth(view.bounds);
+        CGFloat x = 0;
+        CGFloat y = 0;
+        CGFloat w = W * 0.05;
+        CGFloat h = w;
+        
+        UIBezierPath *dot1 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        x = W - w;
+        UIBezierPath *dot2 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        x = W * 0.0375;
+        y = W * 0.7;
+        w = W * 0.1;
+        h = w;
+        UIBezierPath *dot3 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        x = W - x - w;
+        UIBezierPath *dot4 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        x = W * 0.275;
+        y = W * 0.875;
+        w = W * 0.075;
+        h = w;
+        UIBezierPath *dot5 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        x = W - x - w;
+        UIBezierPath *dot6 = [UIBezierPath bezierPathWithRoundedRect:CGRectMake(x, y, w, h) cornerRadius:w*0.5];
+        
+        UIBezierPath *path = [UIBezierPath bezierPath];
+        [path appendPath:dot1];
+        [path appendPath:dot2];
+        [path appendPath:dot3];
+        [path appendPath:dot4];
+        [path appendPath:dot5];
+        [path appendPath:dot6];
+        
+        path.CGPath;
+    });
+    [view.layer addSublayer:shapeLayer];
+}
+
 #pragma mark - override
 
 - (BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(nullable UIEvent *)event
@@ -185,7 +274,16 @@
 
 - (void)endTrackingWithTouch:(nullable UITouch *)touch withEvent:(nullable UIEvent *)event
 {
-    [self startAnimation];
+    CGPoint point = [touch locationInView:touch.view];
+    
+    if (0 - _touchInsets.left <= point.x &&
+        0 - _touchInsets.top <= point.y &&
+        CGRectGetWidth(self.frame) + _touchInsets.right >= point.x &&
+        CGRectGetHeight(self.frame) + _touchInsets.bottom >= point.y){
+        [self startAnimation];
+    }else{
+        [self cancelPreAnimation];
+    }
 }
 
 - (void)cancelTrackingWithEvent:(nullable UIEvent *)event
@@ -202,6 +300,16 @@
         _normalView.transform = CGAffineTransformMakeScale(0.9, 0.9);
     }else{
         _likeView.transform = CGAffineTransformMakeScale(0.9, 0.9);
+    }
+}
+
+- (void)cancelPreAnimation
+{
+    self.userInteractionEnabled = YES;
+    if (!_like) {
+        _normalView.transform = CGAffineTransformMakeScale(1, 1);
+    }else{
+        _likeView.transform = CGAffineTransformMakeScale(1, 1);
     }
 }
 
@@ -241,6 +349,12 @@
 
 - (void)clickFinish
 {
+    [_normalView.layer  removeAnimationForKey:@"scaleAnimation"];
+    [_likeView.layer    removeAnimationForKey:@"scaleAnimation"];
+    [_circleView1.layer removeAnimationForKey:@"scaleAnimation"];
+    [_circleView2.layer removeAnimationForKey:@"scaleAnimation"];
+    [_circleView3.layer removeAnimationForKey:@"scaleAnimation"];
+    
     if (_clickBlock) {
         _clickBlock(_like);
     }
@@ -256,11 +370,19 @@
     _circleView2.frame = self.bounds;
     _circleView3.frame = self.bounds;
     
-    [self drawPentagramInView:_normalView color:_color rate:_rate];
-    [self drawPentagramInView:_likeView color:_likeColor rate:_rate];
     [self drawCircleInView:_circleView1 color:_likeColor];
     [self drawCircleInView:_circleView2 color:[UIColor whiteColor]];
-    [self drawLightInView:_circleView3 color:_likeColor];
+    
+    if (_type == JHLikeButtonType_Star) {
+        [self drawLightInView:_circleView3 color:_likeColor];
+        [self drawPentagramInView:_normalView color:_color rate:_rate];
+        [self drawPentagramInView:_likeView color:_likeColor rate:_rate];
+    }
+    else if (_type == JHLikeButtonType_Heart) {
+        [self drawDotInView:_circleView3 color:_likeColor];
+        [self drawHeartInView:_normalView color:_color];
+        [self drawHeartInView:_likeView color:_likeColor];
+    }
 }
 
 - (void)startAnimation
@@ -283,7 +405,7 @@
         
         // Zoom in the second circle / 放大
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.4 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [_normalView.layer removeAnimationForKey:@"scaleAnimation"];
+            //[_normalView.layer removeAnimationForKey:@"scaleAnimation"];
             _circleView2.hidden = NO;
             
             [self scaleAnimationForView:_circleView2 values:@[@(0),@(1.1)] duration:0.3 beginTimeOffset:0 timingFunction:kCAMediaTimingFunctionEaseOut keepLastStatus:YES];
@@ -300,7 +422,11 @@
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.8 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             _circleView3.hidden = NO;
             
-            [self scaleAnimationForView:_circleView3 values:@[@(0.2),@(1.1)] duration:0.3 beginTimeOffset:0 timingFunction:kCAMediaTimingFunctionEaseOut keepLastStatus:YES];
+            if (_type == JHLikeButtonType_Star) {
+                [self scaleAnimationForView:_circleView3 values:@[@(0.2),@(1.1)] duration:0.3 beginTimeOffset:0 timingFunction:kCAMediaTimingFunctionEaseOut keepLastStatus:YES];
+            }else if (_type == JHLikeButtonType_Heart) {
+                
+            }
         });
         
         // Finish / 完成
